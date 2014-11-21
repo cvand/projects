@@ -1,0 +1,17 @@
+
+scp -i 15619demo.pem project5_q1.jar ec2-user@ec2-54-172-241-213.compute-1.amazonaws.com:project5.jar
+
+//transfer files to instance
+scp -i 15619demo.pem mysql-connector-java-5.1.33.zip ec2-user@ec2-54-172-241-213.compute-1.amazonaws.com:mysql-connector.jar
+scp -i 15619demo.pem vert.x-2.1.3.zip ec2-user@ec2-54-172-241-213.compute-1.amazonaws.com:vertx.zip
+
+//ssh to instance ami-05355a6c
+ssh -i 15619demo.pem ec2-user@ec2-54-172-241-213.compute-1.amazonaws.com
+
+sudo yum update
+sudo yum install java-1.7.0-openjdk-devel
+sudo alternatives --config java   //choose no 2
+
+unzip vertx.zip
+PATH=$PATH:vert.x-2.1.3/bin
+vertx run com.cmu.edu.ServerLoader -cp "project5.jar"

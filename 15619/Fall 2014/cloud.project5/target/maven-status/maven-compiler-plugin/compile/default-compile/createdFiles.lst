@@ -1,0 +1,12 @@
+com\cmu\edu\cloud\querries\Query1.class
+com\cmu\edu\cloud\model\Tweet.class
+com\cmu\edu\database\NoSQLPersistor.class
+com\cmu\edu\database\MySQLPersistor.class
+com\cmu\edu\Config.class
+com\cmu\edu\cloud\model\AfinnDataset.class
+com\cmu\edu\ServerLoader.class
+com\cmu\edu\ServerLoader$2.class
+com\cmu\edu\cloud\model\Rot13ed.class
+com\cmu\edu\database\Persistor.class
+com\cmu\edu\cloud\querries\Query2.class
+com\cmu\edu\ServerLoader$1.class
