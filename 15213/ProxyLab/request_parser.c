@@ -77,15 +77,14 @@ void create_request_hdrs(char *buf, Request *request) {
  */
 /* $begin read_requesthdrs */
 void read_requesthdrs(rio_t *rp, Request *req) {
-	char buf[MAXLINE];
+	char buf[RIO_BUFSIZE];
 
 	print_func();
 	prepare_header(&(req->header));
 
 	do {
-		Rio_readlineb(rp, buf, MAXLINE);
+		Rio_readlineb(rp, buf, RIO_BUFSIZE);
 		if ((strlen(buf) == 0) || (!strcmp(buf, "\r\n"))) {
-			printf("break\n");
 			break;
 		}
 		set_header(buf, &(req->header));
@@ -95,6 +94,23 @@ void read_requesthdrs(rio_t *rp, Request *req) {
 	return;
 }
 /* $end read_requesthdrs */
+
+void set_requesthdrs(char *rio_buf, Request *req) {
+	print_func();
+	prepare_header(&(req->header));
+
+	char buf[RIO_BUFSIZE];
+	strcpy(buf, rio_buf);
+
+	char *header, *save;
+	header = strtok_r(buf, "\r\n", &save);
+	do {
+
+		set_header(strcat(header, "\r\n"), &(req->header));
+	} while ((header = strtok_r(NULL, "\r\n", &save)) != NULL);
+
+	return;
+}
 
 void prepare_request(Request *req, char *uri, char *method, char *version) {
 	print_func();
@@ -111,6 +127,9 @@ void prepare_request(Request *req, char *uri, char *method, char *version) {
 
 void send_request(int clientfd, Request *request) {
 	char buf[RIO_BUFSIZE];
+
+	print_func();
+
 	memset(buf, 0, sizeof(buf));
 
 	//create the request to send
@@ -133,7 +152,7 @@ void send_request(int clientfd, Request *request) {
 	strcat(buf, VERSION);
 	strcat(buf, "\r\n");
 
-	printf("%d - buf: %s", __LINE__, buf);
+	printf("%s %d - buf: %s", __func__, __LINE__, buf);
 
 	Rio_writen(clientfd, buf, strlen(buf));
 //	Rio_readinitb(&rio, clientfd);
@@ -144,11 +163,14 @@ void send_request(int clientfd, Request *request) {
 
 void send_header(int clientfd, Request *request) {
 	char buf[RIO_BUFSIZE];
+
+	print_func();
+
 	//copy headers to the rio buffer
 	create_request_hdrs(buf, request);
 
 	Rio_writen(clientfd, buf, strlen(buf));
-
+	printf("end %s\n", __func__);
 	return;
 }
 
@@ -197,8 +219,7 @@ char *get_path(char *path) {
 	// remove hostname
 	p = strtok_r(path, "/", &saveptr);
 
-	if ((p = strtok_r(NULL, "/", &saveptr)) != NULL) {
-		printf("p %s\n", p);
+	if ((p = strtok_r(NULL, "", &saveptr)) != NULL) {
 		// if the request has arguments, remove them
 		char *c;
 		if ((c = strstr(p, "?")) != NULL) {
@@ -212,7 +233,6 @@ char *get_path(char *path) {
 		p = "";
 	}
 
-	printf("p %s\n", p);
 	return p;
 }
 

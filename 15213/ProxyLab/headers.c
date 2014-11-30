@@ -20,9 +20,7 @@ void prepare_header(Header *header) {
 	header->accept_encoding = accept_encoding_hdr;
 	header->connection = connection_hdr;
 	header->proxy_connection = proxy_connection_hdr;
-	header->other_headers = malloc(15 * MAXLINE);
 
-	printf("end of %s\n", __func__);
 	return;
 }
 
@@ -32,13 +30,12 @@ void set_header(char *header, Header *head) {
 
 	char *key = strtok(buf, ": ");
 	char *value = strtok(NULL, "");
-//	printf("key: %s \t value: %s\n", key, value);
 
 	if (set_standard_header(key, value, head)) {
 		return;
 	}
 
-	set_other_header(header, head);
+	set_other_header(buf, head);
 	return;
 }
 
@@ -69,12 +66,27 @@ void set_other_header(char *buf, Header *header) {
 	printf("counter %d\n", counter);
 	printf("buf header %s\n", buf);
 
-	header->other_headers[counter] = malloc(sizeof(buf));
+//	header->other_headers[counter] = malloc(sizeof(buf));
 
 	strcpy(header->other_headers[counter], buf);
 
 	header->other_headers_counter++;
 	return;
+}
+
+int is_length_header(char *buf) {
+	print_func();
+	char key[MAXLINE], value[MAXLINE];
+
+	sscanf(buf, "%s %s\r\n", key, value);
+
+	if (!strcmp(key, "Content-length:")) {
+		int length = atoi(value);
+		printf("parsed length %d\n", length);
+		return length;
+	}
+
+	return 0;
 }
 
 void print_header(Header header) {
@@ -93,5 +105,19 @@ void print_header(Header header) {
 		printf("%s", hdr);
 	}
 
+	return;
+}
+
+void copy_header(Header *dst, Header *src) {
+	strcpy(dst->host, src->host);
+	strcpy(dst->user_agent, src->user_agent);
+	strcpy(dst->accept, src->accept);
+	strcpy(dst->accept_encoding, src->accept_encoding);
+	strcpy(dst->connection, src->connection);
+	strcpy(dst->proxy_connection, src->proxy_connection);
+//	if (src->other_headers != NULL) {
+//		strcpy(dst->other_headers, src->other_headers);
+//	}
+	dst->other_headers_counter = src->other_headers_counter;
 	return;
 }

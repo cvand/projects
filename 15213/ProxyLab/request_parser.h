@@ -25,6 +25,7 @@ typedef struct request Request;
 
 void parse_uri(char *uri, Request *req);
 void read_requesthdrs(rio_t *rp, Request *req);
+void set_requesthdrs(char *rio_buf, Request *req);
 char *get_hostname(char *uri);
 char *get_path(char *path);
 char *get_query(char *query);

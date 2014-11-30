@@ -14,29 +14,32 @@
 #define print_func()
 #endif
 
-///* You won't lose style points for including these long lines in your code */
-//static const char *user_agent_hdr =
-//		"User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
-//static const char *accept_hdr =
-//		"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
-//static const char *accept_encoding_hdr = "Accept-Encoding: gzip, deflate\r\n";
-
+void *thread(void *vargp);
 void read_request(int fd);
-void serve_static(int fd, char *filename, int filesize);
-void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
 		char *longmsg);
 
-void serve_request(int fd, rio_t *rio, char *method, char *uri, char *version);
+void serve_request(int fd, rio_t *rio, char *method, char *uri, char *version,
+		int is_fwd);
 void forward_request(int fd, Request *request);
 int is_successful(char *buf);
+void check_Rio_writen(int fd, char *buf, size_t length);
+
+void sigpipe_handler(int sig);
+
+struct args {
+	struct sockaddr_storage clientaddr;
+	socklen_t clientlen;
+	int *connfd;
+};
 
 int main(int argc, char **argv) {
-	int listenfd, connfd;
-	char hostname[MAXLINE], port[MAXLINE];
+	int listenfd, *connfd;
 	socklen_t clientlen;
 	struct sockaddr_storage clientaddr;
+	pthread_t tid;
+
+	Signal(SIGPIPE, sigpipe_handler);
 
 	/* Check command line args */
 	if (argc != 2) {
@@ -49,22 +52,41 @@ int main(int argc, char **argv) {
 		clientlen = sizeof(clientaddr);
 
 		// ready to accept requests
-		connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
+		connfd = Malloc(sizeof(int));
+		*connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
 
-		int rc;
-		//gets a connected socket and returns the host name and port
-		if ((rc = getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE,
-				port, MAXLINE, 0)) != 0) {
-			printf("getnameinfo failed\n");
-			Close(connfd);
-			continue;
-		}
+		struct args arg;
+		arg.clientaddr = clientaddr;
+		arg.clientlen = clientlen;
+		arg.connfd = connfd;
 
-		printf("Accepted connection from (%s, %s)\n", hostname, port);
-
-		read_request(connfd);
-		Close(connfd);
+		Pthread_create(&tid, NULL, thread, &arg);
 	}
+}
+
+/* Thread routine */
+void *thread(void *vargp) {
+	struct args arg = *((struct args *) vargp);
+
+	int connfd = *arg.connfd;
+	Pthread_detach(pthread_self());
+	char hostname[MAXLINE], port[MAXLINE];
+
+	printf("Accepted!\n");
+	int rc;
+	//gets a connected socket and returns the host name and port
+	if ((rc = getnameinfo((SA *) &arg.clientaddr, arg.clientlen, hostname, MAXLINE,
+			port, MAXLINE, 0)) != 0) {
+		printf("getnameinfo failed\n");
+		Close(connfd);
+		return NULL;
+	}
+
+	read_request(connfd);
+
+	Close(connfd);
+//	Free(vargp);
+	return NULL;
 }
 
 /*
@@ -77,12 +99,10 @@ void read_request(int fd) {
 
 	/* Read request line and headers */
 	Rio_readinitb(&rio, fd);
-	if (!Rio_readlineb(&rio, buf, MAXLINE)) return;
+	Rio_readlineb(&rio, buf, MAXLINE);
 
 	sscanf(buf, "%s %s %s", method, uri, version);
 	print_func();
-	printf("buf = %s", buf);
-	printf("uri = %s\n", uri);
 
 	if (strcasecmp(method, "GET")) {
 		clienterror(fd, method, "501", "Not Implemented",
@@ -93,14 +113,16 @@ void read_request(int fd) {
 	if (strstr(uri, "http:") != uri) {
 		clienterror(fd, method, "501", "Not implemented protocol",
 				"Proxy does not implement this protocol");
+		return;
 	}
 
-	serve_request(fd, &rio, method, uri, version);
+	serve_request(fd, &rio, method, uri, version, 0);
 	return;
 }
 /* $end read_request */
 
-void serve_request(int fd, rio_t *rio, char *method, char *uri, char *version) {
+void serve_request(int fd, rio_t *rio, char *method, char *uri, char *version,
+		int is_fwd) {
 	Request req;
 
 	print_func();
@@ -109,12 +131,11 @@ void serve_request(int fd, rio_t *rio, char *method, char *uri, char *version) {
 	/* Parse URI from GET request */
 	parse_uri(uri, &req);
 
-	read_requesthdrs(rio, &req);
-
-	printf("CHECK HEADER\n");
-	print_request(&req);
-	printf("CHECK HEADER -- END\n");
-
+	if (!is_fwd) {
+		read_requesthdrs(rio, &req);
+	} else {
+		set_requesthdrs(rio->rio_buf, &req);
+	}
 	forward_request(fd, &req);
 
 	return;
@@ -147,117 +168,83 @@ void forward_request(int fd, Request *request) {
 	send_header(clientfd, request);
 
 	Rio_readinitb(&rio, clientfd);
+	printf("%d\n", __LINE__);
 
 	Rio_readlineb(&rio, buf, MAXLINE);
+	printf("%d\n", __LINE__);
+
 	if (is_successful(buf)) {
 		printf("--- RESPONSE ----\n");
+
+		check_Rio_writen(fd, buf, strlen(buf));
+
 		while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
 			printf("%s", buf);
-			Rio_writen(fd, buf, strlen(buf));
-		}
+			check_Rio_writen(fd, buf, strlen(buf));
 
+			if (n < 0) {
+				printf("Error reading from fd. \t errno: %d\n", errno);
+				Close(clientfd);
+				return;
+			}
+		}
 		printf("\n--- END of RESPONSE ----\n");
+
 		Close(clientfd);
 		return;
 	}
 
-	// if the response was not HTTP 200
+	// if the response was HTTP 300
 	char key[MAXLINE], value[MAXLINE];
+
+	if (((n = Rio_readlineb(&rio, buf, MAXLINE)) < 0)
+			&& (errno == ECONNRESET)) {
+		Close(clientfd);
+		return;
+	}
+
 	do {
-		Rio_readlineb(&rio, buf, MAXLINE);
+		if (n < 0) {
+			Close(clientfd);
+			return;
+		}
 		sscanf(buf, "%s %s\r\n", key, value);
-		printf("loop %s\n", buf);
+
 		if (!strcmp(key, "Location:")) {
 			printf("Found location: %s\n", value);
 
-//			Close(clientfd);
 			// run new request with value as uri
 			rio_t new_rio;
+
+			// put in rio buffer the host of the previous request
+			strcpy(new_rio.rio_buf, request->header.host);
+			strcat(new_rio.rio_buf, "\r\n");
+
 			Rio_readinitb(&new_rio, clientfd);
-			serve_request(fd, &new_rio, "GET", value, "HTTP/1.0");
+
+			serve_request(fd, &new_rio, "GET", value, "HTTP/1.0", 1);
 			break;
 		}
-	} while (strcmp(key, "Location:") && ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0));
+	} while (strcmp(key, "Location:")
+			&& ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0));
 
 	Close(clientfd);
 	return;
 }
 
 int is_successful(char *buf) {
+	printf("%d\n", __LINE__);
 	char version[MAXLINE], message[MAXLINE], result[3];
 	print_func();
 
+	printf("%d\n", __LINE__);
 	sscanf(buf, "%s %s %s", version, result, message);
 	int i = atoi(result);
 
-	printf("result: %d\n", i);
-
-	if ( i >= 300)
-		return 0;
+	if ((i >= 300) && (i < 400)) return 0;
+	printf("%d\n", __LINE__);
 	return 1;
 }
-
-/*
- * get_filetype - derive file type from file name
- */
-void get_filetype(char *filename, char *filetype) {
-	if (strstr(filename, ".html")) strcpy(filetype, "text/html");
-	else if (strstr(filename, ".gif")) strcpy(filetype, "image/gif");
-	else if (strstr(filename, ".png")) strcpy(filetype, "image/png");
-	else if (strstr(filename, ".jpg")) strcpy(filetype, "image/jpeg");
-	else strcpy(filetype, "text/plain");
-}
-
-/*
- * serve_static - copy a file back to the client
- */
-/* $begin serve_static */
-void serve_static(int fd, char *filename, int filesize) {
-	int srcfd;
-	char *srcp, filetype[MAXLINE], buf[MAXBUF];
-
-	/* Send response headers to client */
-	get_filetype(filename, filetype);          //line:netp:servestatic:getfiletype
-	sprintf(buf, "HTTP/1.0 200 OK\r\n");          //line:netp:servestatic:beginserve
-	sprintf(buf, "%sServer: Proxy Server\r\n", buf);
-	sprintf(buf, "%sConnection: close\r\n", buf);
-	sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
-	sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
-	Rio_writen(fd, buf, strlen(buf));          //line:netp:servestatic:endserve
-	printf("Response headers:\n");
-	printf("%s", buf);
-
-	/* Send response body to client */
-	srcfd = Open(filename, O_RDONLY, 0);          //line:netp:servestatic:open
-	srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);          //line:netp:servestatic:mmap
-	Close(srcfd);                          //line:netp:servestatic:close
-	Rio_writen(fd, srcp, filesize);          //line:netp:servestatic:write
-	Munmap(srcp, filesize);               //line:netp:servestatic:munmap
-}
-/* $end serve_static */
-
-/*
- * serve_dynamic - run a CGI program on behalf of the client
- */
-/* $begin serve_dynamic */
-void serve_dynamic(int fd, char *filename, char *cgiargs) {
-	char buf[MAXLINE], *emptylist[] = { NULL };
-
-	/* Return first part of HTTP response */
-	sprintf(buf, "HTTP/1.0 200 OK\r\n");
-	Rio_writen(fd, buf, strlen(buf));
-	sprintf(buf, "Server: Proxy Server\r\n");
-	Rio_writen(fd, buf, strlen(buf));
-
-	if (Fork() == 0) { /* Child */          //line:netp:servedynamic:fork
-		/* Real server would set all CGI vars here */
-		setenv("QUERY_STRING", cgiargs, 1);          //line:netp:servedynamic:setenv
-		Dup2(fd, STDOUT_FILENO); /* Redirect stdout to client */          //line:netp:servedynamic:dup2
-		Execve(filename, emptylist, environ); /* Run CGI program */          //line:netp:servedynamic:execve
-	}
-	Wait(NULL); /* Parent waits for and reaps child */          //line:netp:servedynamic:wait
-}
-/* $end serve_dynamic */
 
 /*
  * clienterror - returns an error message to the client
@@ -268,7 +255,7 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
 	char buf[MAXLINE], body[MAXBUF];
 
 	/* Build the HTTP response body */
-	sprintf(body, "<html><title>Tiny Error</title>");
+	sprintf(body, "<html><title>Proxy Error</title>");
 	sprintf(body, "%s<body bgcolor=" "ffffff" ">\r\n", body);
 	sprintf(body, "%s%s: %s\r\n", body, errnum, shortmsg);
 	sprintf(body, "%s<p>%s: %s\r\n", body, longmsg, cause);
@@ -276,11 +263,24 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
 
 	/* Print the HTTP response */
 	sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
-	Rio_writen(fd, buf, strlen(buf));
+	check_Rio_writen(fd, buf, strlen(buf));
 	sprintf(buf, "Content-type: text/html\r\n");
-	Rio_writen(fd, buf, strlen(buf));
+	check_Rio_writen(fd, buf, strlen(buf));
 	sprintf(buf, "Content-length: %d\r\n\r\n", (int) strlen(body));
-	Rio_writen(fd, buf, strlen(buf));
-	Rio_writen(fd, body, strlen(body));
+	check_Rio_writen(fd, buf, strlen(buf));
+	check_Rio_writen(fd, body, strlen(body));
+	return;
 }
 /* $end clienterror */
+
+void check_Rio_writen(int fd, char *buf, size_t length) {
+	if (rio_writen(fd, buf, length) != length) {
+		printf("check_Rio_writen error\n");
+		return;
+	}
+}
+
+void sigpipe_handler(int sig) {
+	printf("sigpipe error\n");
+	return;
+}
