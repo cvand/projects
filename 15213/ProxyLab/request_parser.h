@@ -1,7 +1,6 @@
 #include "headers.h"
 #include "csapp.h"
 
-#define PRINT
 #define DEFAULT_PORT "80"
 
 struct request{
@@ -16,12 +15,6 @@ struct request{
 };
 
 typedef struct request Request;
-
-#ifdef PRINT
-#define print_func() printf("-- %s --\n", __func__)
-#else
-#define print_func()
-#endif
 
 void parse_uri(char *uri, Request *req);
 void read_requesthdrs(rio_t *rp, Request *req);

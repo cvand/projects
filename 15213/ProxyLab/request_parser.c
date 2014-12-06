@@ -1,15 +1,17 @@
+/*
+ * request_parser -- Library that has functions for parsing a request. It contains functions for creating, initializing, parsing and sending a
+ * 					 header, as well as helper functions for the parsing.
+ */
+
 #include "request_parser.h"
 
 #define VERSION " HTTP/1.0"
 #define METHOD "GET "
-/*
- * parse_uri - parse URI into filename and CGI args
- *             return 0 if dynamic content, 1 if static
- */
-/* $begin parse_uri */
-void parse_uri(char *uri, Request *req) {
 
-	print_func();
+/*
+ * parse_uri - parse URI into host, port, path and query
+ */
+void parse_uri(char *uri, Request *req) {
 
 	//create a copy of uri for splitting it
 	char url[MAXLINE];
@@ -48,8 +50,10 @@ void parse_uri(char *uri, Request *req) {
 
 	return;
 }
-/* $end parse_uri */
 
+/*
+ * create_request_hdrs - Function that for every header contained in the request create one whole string.
+ */
 void create_request_hdrs(char *buf, Request *request) {
 	char h[RIO_BUFSIZE];
 	memset(h, 0, RIO_BUFSIZE);
@@ -68,18 +72,15 @@ void create_request_hdrs(char *buf, Request *request) {
 	}
 
 	strcat(h, "\r\n");
-//	buf = malloc(sizeof(h));
 	strcpy(buf, h);
 }
 
 /*
  * read_requesthdrs - read HTTP request headers
  */
-/* $begin read_requesthdrs */
 void read_requesthdrs(rio_t *rp, Request *req) {
 	char buf[RIO_BUFSIZE];
 
-	print_func();
 	prepare_header(&(req->header));
 
 	do {
@@ -93,10 +94,11 @@ void read_requesthdrs(rio_t *rp, Request *req) {
 
 	return;
 }
-/* $end read_requesthdrs */
 
+/*
+ * set_requesthdrs - Function that for every header contained in the buffer, a header object is created and added to the request.
+ */
 void set_requesthdrs(char *rio_buf, Request *req) {
-	print_func();
 	prepare_header(&(req->header));
 
 	char buf[RIO_BUFSIZE];
@@ -112,9 +114,10 @@ void set_requesthdrs(char *rio_buf, Request *req) {
 	return;
 }
 
+/*
+ * prepare_request - Function that initializes the request object with values
+ */
 void prepare_request(Request *req, char *uri, char *method, char *version) {
-	print_func();
-
 	req->uri = malloc(MAXLINE);
 	req->method = malloc(MAXLINE);
 	req->version = malloc(MAXLINE);
@@ -125,59 +128,59 @@ void prepare_request(Request *req, char *uri, char *method, char *version) {
 	return;
 }
 
+/*
+ * send_request - Function that sends the single line request to the server
+ */
 void send_request(int clientfd, Request *request) {
 	char buf[RIO_BUFSIZE];
-
-	print_func();
 
 	memset(buf, 0, sizeof(buf));
 
 	//create the request to send
 	strcat(buf, "");
+	// add method in buffer
 	strcat(buf, METHOD);
 
+	// add path in buffer if any, else plain /
 	strcat(buf, "/");
 	if ((request->path != NULL) && (strcmp(request->path, ""))) {
 		strcat(buf, request->path);
 	}
 
+	// add query if any in buffer
 	if ((request->query != NULL) && (strcmp(request->query, ""))) {
 
 		strcat(buf, "?");
 		strcat(buf, request->query);
 	}
 
-//	strcat(buf, "\r\n");
-
+	// add version HTTP 1.0
 	strcat(buf, VERSION);
 	strcat(buf, "\r\n");
 
-	printf("%s %d - buf: %s", __func__, __LINE__, buf);
-
 	Rio_writen(clientfd, buf, strlen(buf));
-//	Rio_readinitb(&rio, clientfd);
-//	Fputs(buf, stdout);
 
 	return;
 }
 
+/*
+ * send_header - Function that sends the headers of a request objects to the server
+ */
 void send_header(int clientfd, Request *request) {
 	char buf[RIO_BUFSIZE];
-
-	print_func();
 
 	//copy headers to the rio buffer
 	create_request_hdrs(buf, request);
 
 	Rio_writen(clientfd, buf, strlen(buf));
-	printf("end %s\n", __func__);
 	return;
 }
 
+/*
+ * get_hostname - Helper function that parses the hostname
+ */
 char *get_hostname(char *uri) {
 	char *host, *saveptr;
-
-	print_func();
 
 	// make a copy of the substring of uri
 	char temp[MAXLINE];
@@ -191,10 +194,12 @@ char *get_hostname(char *uri) {
 	return host;
 }
 
+/*
+ * get_port - Helper function that parses the port
+ */
 char *get_port(char *tok) {
 	char *port, *saveptr;
 
-	print_func();
 	// if the token of the uri contains :, it means that there is a port number
 	if (strstr(tok, ":") != NULL) {
 		// split the string and get the substring after :
@@ -211,10 +216,11 @@ char *get_port(char *tok) {
 	return port;
 }
 
+/*
+ * get_path - Helper function that parses the path
+ */
 char *get_path(char *path) {
 	char *p, *saveptr;
-
-	print_func();
 
 	// remove hostname
 	p = strtok_r(path, "/", &saveptr);
@@ -236,11 +242,12 @@ char *get_path(char *path) {
 	return p;
 }
 
+/*
+ * get_query - Helper function that parses the query
+ */
 char *get_query(char *query) {
 	char *q, *saveptr;
 	q = malloc(MAXLINE * sizeof(char));
-
-	print_func();
 
 	q = strtok_r(query, "/", &saveptr);
 
@@ -259,6 +266,9 @@ char *get_query(char *query) {
 	return q;
 }
 
+/*
+ * print_request - Helper function that prints the request
+ */
 void print_request(Request *request) {
 	if (request == NULL) return;
 	printf("-- Request --\n");

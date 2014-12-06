@@ -16,6 +16,9 @@ csapp.o: csapp.c csapp.h
 
 headers.o: headers.c headers.h
 	$(CC) $(CFLAGS) -c headers.c
+	
+cache.o: cache.c cache.h
+	$(CC) $(CFLAGS) -c cache.c
 
 request_parser.o: request_parser.c request_parser.h csapp.h
 	$(CC) $(CFLAGS) -c request_parser.c
@@ -23,7 +26,7 @@ request_parser.o: request_parser.c request_parser.h csapp.h
 proxy.o: proxy.c csapp.h request_parser.h
 	$(CC) $(CFLAGS) -c proxy.c
 
-proxy: proxy.o csapp.o request_parser.o headers.o
+proxy: proxy.o csapp.o request_parser.o headers.o cache.o
 
 # Creates a tarball in ../proxylab-handin.tar that you should then
 # hand in to Autolab. DO NOT MODIFY THIS!

@@ -1,3 +1,6 @@
+/*
+ * headers.c - Library that contains functions about the headers of a request
+ */
 #include "headers.h"
 
 /* You won't lose style points for including these long lines in your code */
@@ -10,9 +13,10 @@ static char *accept_encoding_hdr = "Accept-Encoding: gzip, deflate\r\n";
 static char *connection_hdr = "Connection: close\r\n";
 static char *proxy_connection_hdr = "Proxy-Connection: close\r\n";
 
+/*
+ * prepare_header - Function for initializing a header object, setting default values
+ */
 void prepare_header(Header *header) {
-	print_func();
-
 	header->other_headers_counter = 0;
 	header->host = host_hdr;
 	header->user_agent = user_agent_hdr;
@@ -24,6 +28,9 @@ void prepare_header(Header *header) {
 	return;
 }
 
+/*
+ * set_header - Function that creates a header objects out of a string
+ */
 void set_header(char *header, Header *head) {
 	char *buf = malloc(MAXLINE);
 	strcpy(buf, header);
@@ -31,17 +38,24 @@ void set_header(char *header, Header *head) {
 	char *key = strtok(buf, ": ");
 	char *value = strtok(NULL, "");
 
+	// if the header is one of the standard ones add it and return
 	if (set_standard_header(key, value, head)) {
 		return;
 	}
 
+	// if the header is additional, add it
 	set_other_header(buf, head);
 	return;
 }
 
+/*
+ * set_standard_header - Function that sets on of the headers that are required in the header,
+ * 							according to the handout
+ */
 int set_standard_header(char *key, char *value, Header *header) {
 
 	if (!strcmp(key, "Host")) {
+		// if host header found, change the value
 		char host[MAXLINE] = "";
 		strcat(host, "Host: ");
 		strcat(host, value);
@@ -49,6 +63,7 @@ int set_standard_header(char *key, char *value, Header *header) {
 		header->host = malloc(sizeof(host));
 		strcpy(header->host, host);
 
+		// ignore any other standard header, keep the default value
 	} else if ((!strcmp(key, "User-Agent")) || (!strcmp(key, "Accept"))
 			|| (!strcmp(key, "Accept-Encoding")) || (!strcmp(key, "Connection"))
 			|| (!strcmp(key, "Proxy-Connection"))) {
@@ -60,37 +75,37 @@ int set_standard_header(char *key, char *value, Header *header) {
 	return 1;
 }
 
+/*
+ * set_other_header - Function that adds any additional header in the header object
+ */
 void set_other_header(char *buf, Header *header) {
-	print_func();
 	int counter = header->other_headers_counter;
-	printf("counter %d\n", counter);
-	printf("buf header %s\n", buf);
-
-//	header->other_headers[counter] = malloc(sizeof(buf));
-
 	strcpy(header->other_headers[counter], buf);
 
 	header->other_headers_counter++;
 	return;
 }
 
+/*
+ * is_length_header - Function that checks if the header is the Content-length header
+ */
 int is_length_header(char *buf) {
-	print_func();
 	char key[MAXLINE], value[MAXLINE];
 
 	sscanf(buf, "%s %s\r\n", key, value);
 
 	if (!strcmp(key, "Content-length:")) {
 		int length = atoi(value);
-		printf("parsed length %d\n", length);
 		return length;
 	}
 
 	return 0;
 }
 
+/*
+ * print_header - Helper function that prints header
+ */
 void print_header(Header header) {
-//	if (header == NULL) return;
 	printf("-- Header --\n");
 	printf("%s", header.host);
 	printf("%s", header.user_agent);
@@ -105,19 +120,5 @@ void print_header(Header header) {
 		printf("%s", hdr);
 	}
 
-	return;
-}
-
-void copy_header(Header *dst, Header *src) {
-	strcpy(dst->host, src->host);
-	strcpy(dst->user_agent, src->user_agent);
-	strcpy(dst->accept, src->accept);
-	strcpy(dst->accept_encoding, src->accept_encoding);
-	strcpy(dst->connection, src->connection);
-	strcpy(dst->proxy_connection, src->proxy_connection);
-//	if (src->other_headers != NULL) {
-//		strcpy(dst->other_headers, src->other_headers);
-//	}
-	dst->other_headers_counter = src->other_headers_counter;
 	return;
 }

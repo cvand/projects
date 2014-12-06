@@ -1,7 +1,5 @@
 #include "csapp.h"
 
-#define PRINT
-
 struct header{
 	char *host;
 	char *user_agent;
@@ -15,16 +13,9 @@ struct header{
 
 typedef struct header Header;
 
-#ifdef PRINT
-#define print_func() printf("-- %s --\n", __func__)
-#else
-#define print_func()
-#endif
-
 void prepare_header(Header *header);
 void set_header(char * header, Header *head);
 int set_standard_header(char *key, char *value, Header *header);
 void set_other_header(char *buf, Header *header);
 int is_length_header(char *buf);
 void print_header(Header header);
-void copy_header(Header *dst, Header *scr);
