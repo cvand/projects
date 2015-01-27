@@ -47,12 +47,12 @@ public class Exclusions {
 		excludedArticles.add("404_error/");
 		excludedArticles.add("Main_Page");
 		excludedArticles.add("Hypertext_Transfer_Protocol");
-		excludedArticles.add("Favicon.ico");
 		excludedArticles.add("Search");
 	}
 	
 	public boolean isEnglish(String language) {
-		return (language.equals("En") || language.equals("en") || (language.equals("EN")));
+		return language.equals("en");
+//		return (language.equals("En") || language.equals("en") || (language.equals("EN")));
 	}
 	
 	public boolean containsInTitle(String page) {

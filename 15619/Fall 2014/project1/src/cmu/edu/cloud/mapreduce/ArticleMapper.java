@@ -12,7 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.StringTokenizer;
 
-import cmu.edu.cloud.LogParser;
+import cmu.edu.cloud.LogFilter;
 
 public class ArticleMapper {
 
@@ -57,8 +57,8 @@ public class ArticleMapper {
 		}
 
 		try {
-			LogParser parser = new LogParser(file);
-			File output = parser.parse();
+			LogFilter parser = new LogFilter(file);
+			File output = parser.execute();
 			file.delete();
 			BufferedReader bfr = new BufferedReader(new FileReader(output));
 			mapInput(bfr, filename);

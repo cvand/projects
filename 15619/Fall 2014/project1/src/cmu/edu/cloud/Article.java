@@ -1,6 +1,7 @@
 package cmu.edu.cloud;
 
-public class Article {
+
+public class Article implements Comparable<Article> {
 
 	/*
 	 * Rules: 1) language : en 2) articles start with a capital 3) exclude image
@@ -76,4 +77,12 @@ public class Article {
 		builder.append(views);
 		return builder.toString();
 	}
+
+	@Override
+	public int compareTo(Article o) {
+		if (this.views > o.views) return -1;
+		else if (this.views < o.views) return 1;
+		return 0;
+	}
+
 }

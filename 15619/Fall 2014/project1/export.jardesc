@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="WINDOWS-1252" standalone="no"?>
+<jardesc>
+    <jar path="C:/Users/Chryssanthi/Desktop/project1.1.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/project1/export.jardesc" exportErrors="false" exportWarnings="true" includeDirectoryEntries="false" overwrite="true" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="true" mainClassHandleIdentifier="=project1/src&lt;cmu.edu.cloud{LogFilter.java[LogFilter" manifestLocation="" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
+        <javaElement handleIdentifier="=project1/src&lt;cmu.edu.cloud{Article.java"/>
+        <file path="/project1/.classpath"/>
+        <file path="/project1/.project"/>
+        <javaElement handleIdentifier="=project1/src&lt;cmu.edu.cloud{Exclusions.java"/>
+        <javaElement handleIdentifier="=project1/src&lt;cmu.edu.cloud{LogFilter.java"/>
+    </selectedElements>
+</jardesc>
