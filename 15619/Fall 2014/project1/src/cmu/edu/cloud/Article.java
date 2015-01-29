@@ -26,6 +26,8 @@ public class Article implements Comparable<Article> {
 	}
 
 	public boolean isIncluded(Exclusions exclusions) {
+		boolean isMalformed = pageTitle.equals("");
+		if (isMalformed) return false;
 		boolean isEnglish = exclusions.isEnglish(language);
 		char firstLetter = pageTitle.charAt(0);
 		boolean isEnglishChar = ((firstLetter >= 'a' && firstLetter <= 'z') || (firstLetter >= 'A' && firstLetter <= 'Z'));

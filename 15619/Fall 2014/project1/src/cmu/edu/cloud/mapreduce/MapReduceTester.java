@@ -15,7 +15,7 @@ public class MapReduceTester {
 
 			for (String fname : filenames) {
 				File file = new File(fname);
-				ArticleMapper mapper = new ArticleMapper(new FileInputStream(file));
+				Mapper mapper = new Mapper(new FileInputStream(file));
 				mapper.map();
 			}
 

@@ -57,7 +57,7 @@ public class LogFilter {
 			}
 			return;
 		}
-		
+
 		parser.execute();
 
 		switch (function) {
@@ -97,13 +97,13 @@ public class LogFilter {
 		BufferedReader br = new BufferedReader(new FileReader(filename));
 		String line;
 		this.mostPopularMovieViews = 0;
-		
+
 		while ((line = br.readLine()) != null) {
 			if ( line.contains("(film)") ) {
 				String views = line.split("\t")[1];
 				int v = Integer.parseInt(views);
-				
-				if (v > this.mostPopularMovieViews) {
+
+				if ( v > this.mostPopularMovieViews ) {
 					this.mostPopularMovieViews = v;
 				}
 			}
@@ -113,7 +113,7 @@ public class LogFilter {
 
 	private void filterFile(File file, BufferedWriter bw) throws IOException {
 		BufferedReader br = new BufferedReader(new FileReader(file));
-//		requests = 0;
+		// requests = 0;
 
 		String line;
 		while ((line = br.readLine()) != null) {
@@ -154,9 +154,46 @@ public class LogFilter {
 	}
 
 	private Article parseLine(String line) {
+		Article article = null;
+		String[] artcl = checkLine(line);
+
+		article = new Article(artcl[0], artcl[1], Long.parseLong(artcl[2]), Long.parseLong(artcl[3]));
+		return article;
+	}
+
+	private String[] checkLine(String line) {
+		String[] article = new String[4];
 		String[] lineInfo = line.split(" ");
-		String info = lineInfo[0];
-		Article article = new Article(info, lineInfo[1], Long.parseLong(lineInfo[2]), Long.parseLong(lineInfo[3]));
+
+		String lang = "";
+		String title = "";
+		String views = "";
+		String bytesReturned = "";
+
+//		if (lineInfo.length != 4) {
+//			System.out.println("Split gives back: " + lineInfo.length);
+//		}
+		
+		if (lineInfo.length == 5) {
+			// deal with weird lines
+			System.out.println("---- malformed line");
+			
+			lang = lineInfo[0];
+			title = lineInfo[2];
+			views = lineInfo[3];
+			bytesReturned = lineInfo[4];
+		} else {
+			lang = lineInfo[0];
+			title = lineInfo[1];
+			views = lineInfo[2];
+			bytesReturned = lineInfo[3];
+		}
+		
+		article[0] = lang;
+		article[1] = title;
+		article[2] = views;
+		article[3] = bytesReturned;
+		
 		return article;
 	}
 

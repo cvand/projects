@@ -14,18 +14,12 @@ import java.util.StringTokenizer;
 
 import cmu.edu.cloud.LogFilter;
 
-public class ArticleMapper {
+public class Mapper {
 
 	private String	filename;
 	private File	file;
 
-	public ArticleMapper(String filename) {
-		this.filename = filename;
-		file = new File(filename);
-		// TODO: delete this constructor
-	}
-
-	public ArticleMapper(InputStream is) {
+	public Mapper(InputStream is) {
 		if ( filename == null ) filename = "input_temp";
 		try {
 			file = createTempFile(is);
@@ -35,13 +29,7 @@ public class ArticleMapper {
 	}
 
 	public static void main(String[] args) {
-		// comment those begin
-//		String filename = args[0];
-		// comment those end
-
-//		ArticleMapper mapper = new ArticleMapper(filename);
-//		mapper.map();
-		 ArticleMapper mapper = new ArticleMapper(System.in);
+		 Mapper mapper = new Mapper(System.in);
 		 mapper.map();
 
 	}
@@ -55,10 +43,15 @@ public class ArticleMapper {
 		} else if ( (filename == null) && (filename3 != null) ) {
 			filename = filename3;
 		}
+		
+		//FIXME: Delete the hardcoded filename
+		if ((filename == null) || filename.equals("")) {
+			filename = "pagecounts-20141126-150000";
+		}
 
 		try {
-			LogFilter parser = new LogFilter(file);
-			File output = parser.execute();
+			LogFilter filter = new LogFilter(file);
+			File output = filter.execute();
 			file.delete();
 			BufferedReader bfr = new BufferedReader(new FileReader(output));
 			mapInput(bfr, filename);
@@ -100,8 +93,10 @@ public class ArticleMapper {
 				String article = (String) tk.nextElement();
 				String views = (String) tk.nextElement();
 				String date = extractDate(filename);
-				System.out.println(article + "\t" + views + "_" + date);
-				bw.write(article + "\t" + views + "_" + date);
+				
+				System.out.println(article + "\t" + date + ":" + views);
+				
+				bw.write(article + "\t" + date + ":" + views);
 				bw.newLine();
 			}
 		}
@@ -113,6 +108,6 @@ public class ArticleMapper {
 		String year = date.substring(0, 4);
 		String month = date.substring(4, 6);
 		String day = date.substring(6, 8);
-		return month + "/" + day + "/" + year;
+		return year + month + day;
 	}
 }
