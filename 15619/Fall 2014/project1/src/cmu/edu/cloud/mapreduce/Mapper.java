@@ -1,11 +1,9 @@
 package cmu.edu.cloud.mapreduce;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -45,9 +43,7 @@ public class Mapper {
 		}
 		
 		//FIXME: Delete the hardcoded filename
-		if ((filename == null) || filename.equals("")) {
-			filename = "pagecounts-20141126-150000";
-		}
+//		filename = "s3://...-pagecounts-20141126-150000";
 
 		try {
 			LogFilter filter = new LogFilter(file);
@@ -64,13 +60,10 @@ public class Mapper {
 
 	private File createTempFile(InputStream is) throws IOException {
 		File originalData = new File("_" + filename);
-		// File originalData = new File(filename);
-//		BufferedWriter bw = new BufferedWriter(new FileWriter(originalData));
 		OutputStream os = new FileOutputStream(originalData);
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 		byte[] buffer = new byte[1024];
 		int bytesRead;
-		// read from is to buffer
 		while ((bytesRead = is.read(buffer)) != -1) {
 			os.write(buffer, 0, bytesRead);
 		}
@@ -80,14 +73,11 @@ public class Mapper {
 	}
 
 	private void mapInput(BufferedReader br, String filename) throws IOException {
-
-		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("mapper_output.txt"), true));
-
 		String input;
 		while ((input = br.readLine()) != null) {
 			StringTokenizer tk = new StringTokenizer(input);
 			if ( tk.countTokens() > 2 ) {
-				System.out.println("Input is not by the format: <article>\\t<views>");
+				System.err.println("Input is not by the format: <article>\\t<views>");
 				break;
 			} else {
 				String article = (String) tk.nextElement();
@@ -96,18 +86,14 @@ public class Mapper {
 				
 				System.out.println(article + "\t" + date + ":" + views);
 				
-				bw.write(article + "\t" + date + ":" + views);
-				bw.newLine();
 			}
 		}
-		bw.close();
 	}
 
 	private String extractDate(String file) {
-		String date = file.substring(11, 19);
-		String year = date.substring(0, 4);
-		String month = date.substring(4, 6);
-		String day = date.substring(6, 8);
-		return year + month + day;
+		String[] parts = file.split("-");
+		if (parts.length == 4) {
+			return parts[2];
+		} else return parts[1];
 	}
 }

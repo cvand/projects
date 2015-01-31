@@ -170,14 +170,7 @@ public class LogFilter {
 		String views = "";
 		String bytesReturned = "";
 
-//		if (lineInfo.length != 4) {
-//			System.out.println("Split gives back: " + lineInfo.length);
-//		}
-		
 		if (lineInfo.length == 5) {
-			// deal with weird lines
-			System.out.println("---- malformed line");
-			
 			lang = lineInfo[0];
 			title = lineInfo[2];
 			views = lineInfo[3];
